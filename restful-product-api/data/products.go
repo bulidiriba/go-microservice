@@ -18,11 +18,29 @@ type Product struct {
 	DeletedOn   string  `json:"-"`
 }
 
+// function to read single product from the post request
+func (p *Product) FromJSON(r io.Reader) error {
+	e := json.NewDecoder(r)
+	return e.Decode(p)
+}
+
+// object that contains the list of product
 type Products []*Product
 
+// to return or write the list of available product to the get request
 func (p *Products) ToJSON(w io.Writer) error {
 	e := json.NewEncoder(w)
 	return e.Encode(p)
+}
+
+func AddProduct(p *Product) {
+	p.ID = getNextID()
+	productList = append(productList, p)
+}
+
+func getNextID() int {
+	lp := productList[len(productList)-1]
+	return lp.ID + 1
 }
 
 func GetProducts() Products {
