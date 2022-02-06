@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"strconv"
@@ -29,18 +30,12 @@ func (p *Products) GetProducts(rw http.ResponseWriter, r *http.Request) {
 func (p *Products) AddProduct(rw http.ResponseWriter, r *http.Request) {
 	p.l.Println("Handle Post requests")
 
-	prod := &data.Product{}
-	err := prod.FromJSON(r.Body)
-	// if error found
-	if err != nil {
-		http.Error(rw, "Unable to decode the json value", http.StatusBadRequest)
-	}
-	p.l.Printf("Prod: %#v", prod)
-	data.AddProduct(prod)
+	prod := r.Context().Value(KeyProduct{}).(data.Product)
+	data.AddProduct(&prod)
+
 }
 
 func (p *Products) UpdateProducts(rw http.ResponseWriter, r *http.Request) {
-	p.l.Println("Handle Put requests")
 	vars := mux.Vars(r)
 	id, idErr := strconv.Atoi(vars["id"])
 
@@ -48,14 +43,10 @@ func (p *Products) UpdateProducts(rw http.ResponseWriter, r *http.Request) {
 		http.Error(rw, "unable to convert id", http.StatusBadRequest)
 	}
 
-	prod := &data.Product{}
-	err := prod.FromJSON(r.Body)
-	// if error found
-	if err != nil {
-		http.Error(rw, "Unable to decode the json value", http.StatusBadRequest)
-	}
+	p.l.Println("Handle Put requests")
+	prod := r.Context().Value(KeyProduct{}).(data.Product)
 
-	er := data.UpdateProduct(id, prod)
+	er := data.UpdateProduct(id, &prod)
 
 	if er == data.ErrProductNotFound {
 		http.Error(rw, "Product not found", http.StatusNotFound)
@@ -66,4 +57,23 @@ func (p *Products) UpdateProducts(rw http.ResponseWriter, r *http.Request) {
 		http.Error(rw, "Product not found", http.StatusInternalServerError)
 		return
 	}
+}
+
+type KeyProduct struct{}
+
+func (p Products) MiddlewareProductValidation(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+		prod := &data.Product{}
+		err := prod.FromJSON(r.Body)
+		if err != nil {
+			p.l.Println("[ERROR] deserializing product", err)
+			http.Error(rw, "Unable to unmarshal json", http.StatusBadRequest)
+			return
+		}
+
+		ctx := context.WithValue(r.Context(), KeyProduct{}, prod)
+		req := r.WithContext(ctx)
+
+		next.ServeHTTP(rw, req)
+	})
 }
