@@ -9,15 +9,31 @@ import (
 	"time"
 
 	"example.com/m/handlers"
+	"github.com/gorilla/mux"
+	"github.com/nicholasjackson/env"
 )
 
+var bindAddress = env.String("BIND_ADDRESS", false, ":9090", "Bind address for the server")
+
 func main() {
+
+	env.Parse()
+
 	l := log.New(os.Stdout, "product-api", log.LstdFlags)
 
+	// create the handlers
 	prodHandler := handlers.NewProducts(l)
 
-	serverMux := http.NewServeMux()
-	serverMux.Handle("/", prodHandler)
+	// create a new serve mux and register the handlers
+	serverMux := mux.NewRouter()
+	getRouter := serverMux.Methods(http.MethodGet).Subrouter()
+	getRouter.HandleFunc("/", prodHandler.GetProducts)
+
+	putRouter := serverMux.Methods(http.MethodPut).Subrouter()
+	putRouter.HandleFunc("/{id:[0-9]+}", prodHandler.UpdateProducts)
+
+	postRouter := serverMux.Methods(http.MethodPost).Subrouter()
+	postRouter.HandleFunc("/add", prodHandler.AddProduct)
 
 	serve := &http.Server{
 		Addr:         ":9090",
