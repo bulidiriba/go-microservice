@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"example.com/m/handlers"
+	gohandlers "github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/nicholasjackson/env"
 )
@@ -37,9 +38,12 @@ func main() {
 	postRouter.HandleFunc("/add", prodHandler.AddProduct)
 	postRouter.Use(prodHandler.MiddlewareProductValidation)
 
+	// CORS
+	corsHandler := gohandlers.CORS(gohandlers.AllowedOrigins([]string{"http://localhost:3000"}))
+
 	serve := &http.Server{
-		Addr:         ":9090",
-		Handler:      serverMux,
+		Addr:         ":9091",
+		Handler:      corsHandler(serverMux),
 		IdleTimeout:  120 * time.Second,
 		ReadTimeout:  1 * time.Second,
 		WriteTimeout: 1 * time.Second,
