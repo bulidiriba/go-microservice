@@ -24,3 +24,26 @@ Then in another terminal or browser run the client
     ```curl -v localhost:9090/1 -XPUT -d '{"name":"tea", "description":"a nice cup of tea"}'```
 
 
+#### To Execute the Makefile
+
+        ```make protos```
+
+  To List the services
+        grpcurl --plaintext localhost:9092 list
+
+To see the methods in the services
+        grpcurl --plaintext localhost:9092 list Currency
+
+To describe the methods
+
+    grpcurl --plaintext localhost:9092 describe Currency.GetRate
+
+To describe the Request or Response
+
+    grpcurl --plaintext localhost:9092 describe .RateRequest
+
+To send the request and get the response
+
+    grpcurl --plaintext -d '{"Base":"GBP", "Destination":"US"}' localhost:9092 Currency.GetRate
+
+
